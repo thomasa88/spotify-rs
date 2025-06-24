@@ -583,6 +583,16 @@ impl AuthCodeClient<Token> {
             http,
         })
     }
+
+    pub fn hack_to_unknown_flow_client(self) -> Client<Token, UnknownFlow> {
+        Client {
+            auto_refresh: self.auto_refresh,
+            auth_state: self.auth_state,
+            auth_flow: crate::auth::UnknownFlow,
+            oauth: self.oauth,
+            http: self.http,
+        }
+    }
 }
 
 impl AuthCodePkceClient<Token> {
