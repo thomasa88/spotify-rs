@@ -10,7 +10,7 @@ use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitEx
 async fn main() -> anyhow::Result<()> {
     let _sub = tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
-        .with(EnvFilter::new("trace,hyper=info"))
+        .with(EnvFilter::new("trace,hyper=debug"))
         .init();
 
     dotenvy::dotenv()?;
@@ -36,8 +36,9 @@ async fn main() -> anyhow::Result<()> {
         info!("Poll task running");
         loop {
             info!("Poll");
-            spotify_rs::get_available_markets(&refresh_client).await?;
-            tokio::time::sleep(Duration::from_secs(10)).await;
+            let markets = spotify_rs::get_available_markets(&refresh_client).await?;
+            info!("Got {} markets", markets.len());
+            tokio::time::sleep(Duration::from_secs(10 * 60)).await;
         }
     } else {
         info!("New session");
