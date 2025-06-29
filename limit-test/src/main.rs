@@ -42,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
             .get(&refresh_client)
             .await?;
         let tracks = playlist.tracks.get_all(&refresh_client).await?;
-        tracks.iter().for_each(|_| {});
+        info!("Got {} playlist tracks", tracks.iter().count());
     } else {
         info!("New session");
         let (auth_client, url) = AuthCodeClient::new(
