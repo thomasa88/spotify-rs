@@ -77,6 +77,8 @@ pub struct Client<A: AuthenticationState, F: AuthFlow> {
     pub(crate) oauth: OAuthClient,
     // The HTTP client.
     pub(crate) http: reqwest::Client,
+    // Counts the number of API requests made. Can be used to keep below API request limits.
+    request_counter: Arc<std::sync::atomic::AtomicUsize>,
 }
 
 impl Client<Token, UnknownFlow> {
@@ -120,7 +122,12 @@ impl Client<Token, UnknownFlow> {
             auth_flow: UnknownFlow,
             oauth: oauth_client,
             http: reqwest::Client::new(),
+            request_counter: Default::default(),
         })
+    }
+
+    pub fn get_api_request_count(&self) -> usize {
+        self.request_counter.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 
@@ -256,6 +263,7 @@ impl<F: AuthFlow> Client<Token, F> {
         let req = req.build()?;
         info!(headers = ?req.headers(), "{} request sent to {}", req.method(), req.url());
 
+        self.request_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let res = self.http.execute(req).await?;
 
         if res.status().is_success() {
@@ -371,6 +379,7 @@ impl AuthCodeClient<Unauthenticated> {
                 auth_flow: AuthCodeFlow { csrf_token },
                 oauth,
                 http: reqwest::Client::new(),
+                request_counter: Default::default(),
             },
             auth_url,
         )
@@ -405,6 +414,7 @@ impl AuthCodeClient<Unauthenticated> {
             auth_flow: self.auth_flow,
             oauth: self.oauth,
             http: self.http,
+            request_counter: Default::default(),
         })
     }
 }
@@ -454,6 +464,7 @@ impl AuthCodePkceClient<Unauthenticated> {
                 },
                 oauth,
                 http: reqwest::Client::new(),
+                request_counter: Default::default(),
             },
             auth_url,
         )
@@ -496,6 +507,7 @@ impl AuthCodePkceClient<Unauthenticated> {
             auth_flow: self.auth_flow,
             oauth: self.oauth,
             http: self.http,
+            request_counter: Default::default(),
         })
     }
 }
@@ -532,6 +544,7 @@ impl ClientCredsClient<Unauthenticated> {
             auth_flow: ClientCredsFlow,
             oauth,
             http: reqwest::Client::new(),
+            request_counter: Default::default(),
         })
     }
 }
@@ -585,6 +598,7 @@ impl AuthCodeClient<Token> {
             auth_flow,
             oauth: oauth_client,
             http,
+            request_counter: Default::default(),
         })
     }
 
@@ -595,6 +609,7 @@ impl AuthCodeClient<Token> {
             auth_flow: crate::auth::UnknownFlow,
             oauth: self.oauth,
             http: self.http,
+            request_counter: Default::default(),
         }
     }
 }
@@ -646,6 +661,7 @@ impl AuthCodePkceClient<Token> {
             auth_flow,
             oauth: oauth_client,
             http,
+            request_counter: Default::default(),
         })
     }
 }
@@ -691,6 +707,7 @@ impl ClientCredsClient<Token> {
             auth_flow: ClientCredsFlow,
             oauth: oauth_client,
             http,
+            request_counter: Default::default(),
         })
     }
 }
