@@ -49,6 +49,12 @@ pub enum Error {
         description: String,
     },
 
+    /// Spotify API rate limit was hit
+    TooManyRequests {
+        /// How long to wait before retrying
+        retry_after: std::time::Duration,
+    },
+
     #[snafu(display("An error ocurred during the authentication process."))]
     Authentication {
         source: OauthError,

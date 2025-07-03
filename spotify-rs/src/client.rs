@@ -1,5 +1,6 @@
 use std::{
     fmt::Debug,
+    str::FromStr,
     sync::{Arc, RwLock},
 };
 
@@ -298,6 +299,17 @@ impl<F: AuthFlow> Client<Token, F> {
                     })
                 }
             }
+        } else if res.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            // TODO: Use better error type for failed parsing.
+            let retry_secs = res
+                .headers()
+                .get(reqwest::header::RETRY_AFTER)
+                .ok_or(Error::InvalidResponse)
+                .and_then(|v| v.to_str().map_err(|_| Error::InvalidResponse))
+                .and_then(|v| u64::from_str(v).map_err(|_| Error::InvalidResponse))?;
+            Err(Error::TooManyRequests {
+                retry_after: std::time::Duration::from_secs(retry_secs),
+            })
         } else {
             Err(res.json::<SpotifyError>().await?.into())
         }
